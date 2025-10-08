@@ -17,6 +17,10 @@ This file gives focused, actionable guidance for AI coding agents working in thi
   2. Planner: Extract requirements → write `docs/REQUIREMENTS.md`.
   3. Architect: Draft `docs/ARCHITECTURE.md` and update `.codex/config.json` with detected language/framework.
   4. Builder/Tester: Create `src/` and `tests/`, add failing tests first.
+  5. If the request asks to clone or reproduce an existing website, follow the Website Exploration checklist (only if `.codex/config.json.agent_capabilities.allow_web_exploration` is true):
+    - Verify `robots.txt` and Terms of Service for allowed behavior and record consent in `.codex/context.md`.
+    - Capture pages and network traces using Playwright; save outputs to `agent_capabilities.artifact_paths.explorer_output`.
+    - Summarize discovered endpoints, assets, and schemas in `docs/REQUIREMENTS.md` and create a `CHANGELOG.md` entry before committing.
 
 - Project-specific conventions & patterns
   - Test-first development is enforced; tests live under `tests/` (create if missing).
@@ -49,6 +53,7 @@ This file gives focused, actionable guidance for AI coding agents working in thi
 - When something is missing
   - If `docs/REQUIREMENTS.md` or `docs/ARCHITECTURE.md` are blank, create the minimal content needed by the Planner/Architect roles.
   - If `.codex/config.json` has `language` or `framework` still `unset`, set them before adding language-specific code.
+   - If agents will perform web exploration, ensure `agent_capabilities.allow_web_exploration` and `artifact_paths` are set in `.codex/config.json`.
 
 - What not to do
   - Don't bypass TDD or push directly to `main`.

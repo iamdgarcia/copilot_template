@@ -1,0 +1,53 @@
+name: CI and Publish
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install frontend deps
+        run: |
+          cd frontend
+          npm ci --no-audit --no-fund
+      - name: Install backend deps
+        run: |
+          cd backend
+          npm ci --no-audit --no-fund
+      - name: Run frontend build
+        run: |
+          cd frontend
+          npm run build
+      - name: Run backend quick smoke
+        run: |
+          echo "No backend tests yet"
+
+  publish:
+    needs: build-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log into GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push backend image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/backend:latest -f backend/Dockerfile .
+          docker push ghcr.io/${{ github.repository }}/backend:latest
+      - name: Build & push frontend image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/frontend:latest -f frontend/Dockerfile .
+          docker push ghcr.io/${{ github.repository }}/frontend:latest

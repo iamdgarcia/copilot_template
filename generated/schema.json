@@ -1,0 +1,29 @@
+{
+  "/api/items": {
+    "responseSample": {
+      "items": [
+        {
+          "id": 1,
+          "name": "Widget"
+        }
+      ],
+      "count": 1
+    },
+    "responseSchema": {
+      "items": {
+        "type": "array",
+        "items": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "count": {
+        "type": "number"
+      }
+    }
+  }
+}

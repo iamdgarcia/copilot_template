@@ -1,0 +1,18 @@
+{
+  "pages": [
+    {
+      "url": "https://example.local/",
+      "requests": [
+        {
+          "method": "GET",
+          "url": "https://example.local/api/items",
+          "response": {
+            "status": 200,
+            "headers": {"content-type": "application/json"},
+            "body": {"items": [{"id": 1, "name": "Widget"}], "count": 1}
+          }
+        }
+      ]
+    }
+  ]
+}

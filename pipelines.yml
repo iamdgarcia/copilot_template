@@ -3,8 +3,20 @@ name: Build & Test
 on: [push, pull_request]
 
 jobs:
-  build-test:
+  backend-tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Bootstrap pipeline — extend me once language is set"
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install & test backend
+        working-directory: backend
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          npm test
+

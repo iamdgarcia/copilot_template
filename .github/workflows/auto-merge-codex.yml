@@ -1,0 +1,83 @@
+name: Auto-merge Codex PRs
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'codex/')
+    steps:
+      - name: Poll and merge when ready
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Do not merge drafts
+            const pr = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+            if (pr.data.draft) {
+              console.log('PR is draft; skipping auto-merge.');
+              return;
+            }
+
+            const maxAttempts = 12; // total wait up to approx backoff sum
+            let attempt = 0;
+            const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
+            while (attempt < maxAttempts) {
+              attempt++;
+              console.log(`Attempt ${attempt}/${maxAttempts} to check PR #${prNumber}`);
+
+              // Refresh PR and check mergeable state
+              const current = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+              if (current.data.mergeable === false) {
+                console.log('PR not mergeable (conflicts or blocked). Aborting auto-merge.');
+                await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body: 'Auto-merge aborted: PR is not mergeable. Please rebase or resolve conflicts.' });
+                return;
+              }
+
+              // Check for pending check runs
+              const checks = await github.rest.checks.listForRef({ owner, repo, ref: current.data.head.sha });
+              const pending = checks.data.check_runs.filter(c => c.status !== 'completed');
+              const failing = checks.data.check_runs.filter(c => c.conclusion && c.conclusion !== 'success');
+
+              if (pending.length > 0) {
+                console.log(`Found ${pending.length} pending checks. Waiting before retry.`);
+              } else if (failing.length > 0) {
+                console.log(`Found ${failing.length} failed checks. Aborting auto-merge.`);
+                await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body: 'Auto-merge aborted: required checks failed. Please fix and push again.' });
+                return;
+              } else {
+                // Ensure required approvals exist (at least 1 approval)
+                const reviews = await github.rest.pulls.listReviews({ owner, repo, pull_number: prNumber });
+                const approved = reviews.data.some(r => r.state === 'APPROVED');
+                if (!approved) {
+                  console.log('No approvals found yet. Aborting auto-merge for now.');
+                  await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body: 'Auto-merge paused: awaiting required approvals.' });
+                  return;
+                }
+
+                // All checks complete, passing, and approvals present — perform merge
+                try {
+                  await github.rest.pulls.merge({ owner, repo, pull_number: prNumber, merge_method: 'squash' });
+                  console.log('Merged PR #' + prNumber);
+                  return;
+                } catch (err) {
+                  console.log('Merge attempt failed:', err.message);
+                  await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body: `Auto-merge failed: ${err.message}` });
+                  return;
+                }
+              }
+
+              // Exponential backoff (seconds)
+              const backoff = Math.min(300000, Math.pow(2, attempt) * 1000);
+              console.log(`Sleeping ${backoff}ms before next attempt`);
+              await sleep(backoff);
+            }
+
+            // If we reach here, timed out
+            await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body: 'Auto-merge timed out waiting for checks. Please review manually.' });

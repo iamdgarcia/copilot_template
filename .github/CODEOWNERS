@@ -1,0 +1,12 @@
+# Code owners
+
+# Backend and infra
+/backend/ @iamdgarcia
+/backend/** @iamdgarcia
+
+# Frontend
+/frontend/ @iamdgarcia
+/frontend/** @iamdgarcia
+
+# Docs
+/docs/ @iamdgarcia

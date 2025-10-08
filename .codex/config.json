@@ -1,8 +1,27 @@
 {
-  "project_name": "unset",
+  "project_name": "copilot_template",
   "status": "bootstrap",
-  "language": "unset",
-  "framework": "unset",
+  "language": "javascript",
+  "framework": "node-express",
+  "orm": "prisma",
+  "db": "sqlite",
   "last_action": "repo_initialized",
-  "next_action": "extract_requirements"
+  "next_action": "extract_requirements",
+  "agent_capabilities": {
+    "allow_web_exploration": true,
+    "default_explorer": "playwright",
+    "artifact_paths": {
+      "explorer_output": "backend/src/scripts/explorer/output/",
+      "assets": "assets/",
+      "generated_scaffold": "generated/"
+    },
+    "require_legal_check": true,
+    "changelog_required": true,
+    "auto_merge": {
+      "enabled": true,
+      "require_approvals": 1,
+      "approver_team": "reviewers",
+      "max_poll_attempts": 12
+    }
+  }
 }
